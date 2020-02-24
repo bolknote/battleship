@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -framework CoreFoundation -framework IOKit -I/usr/local/include/lua/ -llua
+CFLAGS=-Wall -framework CoreFoundation -framework IOKit $(shell pkg-config --cflags lua) -llua
 
 SYS := $(shell $(CC) -dumpmachine)
 
