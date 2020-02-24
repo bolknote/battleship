@@ -76,10 +76,10 @@ void find_led()
 
 
 // Включает и выключает светодиод
-static int set_value(lua_State *L)
+static int led_on(lua_State *L)
 {
 	static IOHIDEventStruct theEvent;
-	theEvent.value = luaL_checknumber(L, -1);
+	theEvent.value = lua_toboolean(L, -1);
 	(*hdi)->setElementValue(hdi, caps_cookie, &theEvent, 0, 0, 0, 0);
 
 	return 0;
@@ -102,12 +102,12 @@ void run_lua()
 	if (status) {
 		fprintf(stderr,"Couldn't load file.\n");
 	} else {
-		lua_register(L, "set_value", set_value);
+		lua_register(L, "led_on", led_on);
 		lua_register(L, "msleep", msleep);
 		int result = lua_pcall(L, 0, 0, 0);
 
 		if (result) {
-			fprintf(stderr,"Failed to run script: %s\n", lua_tostring(L, -1));
+			fprintf(stderr,  "Failed to run script: %s\n", lua_tostring(L, -1));
 		}
 
 		lua_close(L);
@@ -117,6 +117,10 @@ void run_lua()
 int main()
 {	
 	find_led();
+	if (caps_cookie == 0) {
+		fprintf(stderr, "Can't obtain caps cookie.\n");
+	}
+
 	(*hdi)->open(hdi, 0);
 	run_lua();
 	(*hdi)->close(hdi);

@@ -1,4 +1,4 @@
-set_value(1)
+led_on(true)
 io.write("Test")
 msleep(500)
-set_value(0)
+led_on(false)
