@@ -3,6 +3,8 @@ if msleep == nil then
 	os.exit()
 end
 
+--[[ Добавил энтропии, иначе при частых запусках значения,
+получаемые через генератор, сильно повторяются ]]
 local seed = string.byte(io.open("/dev/random", "rb"):read(1))
 math.randomseed(os.time() + seed)
 
@@ -213,8 +215,6 @@ function field:drop_ship(l)
 		nx = math.random(10 - l)
 	end
 
-	print(x, y, nx, ny, is_vert)
-
 	while nx ~= x or ny ~= y do
 		local dx = sign(nx - x)
 		local dy = sign(ny - y)
@@ -225,8 +225,6 @@ function field:drop_ship(l)
 
 		x, y = x + dx, y + dy
 	end
-
-	print(x, y)
 
 	return x, y, is_vert
 end
