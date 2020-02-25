@@ -8,7 +8,7 @@ $(error This program is for the Darwin platform only)
 endif
 
 all:
-	$(CC) $(CFLAGS) -o samuel samuel.c
+	$(CC) $(CFLAGS) -o battleship battleship.c
 
 clean:
-	/bin/rm -rf samuel
+	/bin/rm -rf battleship
