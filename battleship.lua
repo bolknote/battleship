@@ -89,4 +89,9 @@ function morse:words(str)
 	end
 end
 
+-- Если нас подключили не из Си, выходим
+if msleep == nil then
+	os.exit()
+end
+
 morse:words("АБ")
