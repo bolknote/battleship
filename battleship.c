@@ -24,6 +24,12 @@ long get_long_value(CFDictionaryRef element, CFStringRef key)
 	return -1;
 }
 
+_Noreturn void quit()
+{
+	fprintf(stderr,  "Failed to initialize the keyboard.\n");
+	exit(1);
+}
+
 // Поиск так называемого cookie для капса
 void find_led()
 {
@@ -36,8 +42,16 @@ void find_led()
 
     CFMutableDictionaryRef matchingDictRef = IOServiceMatching(kIOHIDDeviceKey);
 
+    if (!matchingDictRef) {
+		quit();
+    }
+
     CFDictionarySetValue(matchingDictRef, CFSTR(kIOHIDPrimaryUsagePageKey), usagePageRef);
     CFDictionarySetValue(matchingDictRef, CFSTR(kIOHIDPrimaryUsageKey), usageRef);
+
+    if (!usagePageRef || !usageRef) {
+		quit();
+    }
 
     io_object_t hidDevice = IOServiceGetMatchingService(kIOMasterPortDefault, matchingDictRef);
     CFRelease(usageRef);
@@ -48,11 +62,11 @@ void find_led()
 	SInt32 score = 0;
 
     IOCreatePlugInInterfaceForService(
-    	hidDevice,
-    	kIOHIDDeviceUserClientTypeID,
-    	kIOCFPlugInInterfaceID,
-    	&plugInInterface,
-    	&score
+		hidDevice,
+		kIOHIDDeviceUserClientTypeID,
+		kIOCFPlugInInterfaceID,
+		&plugInInterface,
+		&score
     );
 
     (*plugInInterface)->QueryInterface(plugInInterface, CFUUIDGetUUIDBytes(kIOHIDDeviceInterfaceID), (LPVOID)&hdi);
@@ -60,7 +74,11 @@ void find_led()
 
     // Собственно поиск cookie для нужного светодиода
     CFArrayRef elements;
-    (*(IOHIDDeviceInterface122 **)hdi)->copyMatchingElements(hdi, NULL, &elements);
+    IOReturn result = (*(IOHIDDeviceInterface122 **)hdi)->copyMatchingElements(hdi, NULL, &elements);
+
+    if (result != kIOReturnSuccess) {
+		quit();
+    }
 
     for (CFIndex i = 0; i < CFArrayGetCount(elements); i++) {
         CFDictionaryRef element = CFArrayGetValueAtIndex(elements, i);
