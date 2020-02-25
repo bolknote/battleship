@@ -1,3 +1,4 @@
+-- Работа с кодами Морзе
 morse = {
 	-- Длительность точки (от неё отталкиваются остальные задержки)
 	delay = 200,
@@ -89,9 +90,56 @@ function morse:words(str)
 	end
 end
 
+-- Поле боя
+field = {
+	field = {
+		["А"] = {false, false, false, false, false, false, false, false, false, false, },
+		["Б"] = {false, false, false, false, false, false, false, false, false, false, },
+		["В"] = {false, false, false, false, false, false, false, false, false, false, },
+		["Г"] = {false, false, false, false, false, false, false, false, false, false, },
+		["Д"] = {false, false, false, false, false, false, false, false, false, false, },
+		["Е"] = {false, false, false, false, false, false, false, false, false, false, },
+		["Ж"] = {false, false, false, false, false, false, false, false, false, false, },
+		["З"] = {false, false, false, false, false, false, false, false, false, false, },
+		["И"] = {false, false, false, false, false, false, false, false, false, false, },
+		["К"] = {false, false, false, false, false, false, false, false, false, false, },
+	},
+}
+
+-- Вывод поля боя (для отладки)
+function field:debug()
+	local keys = {}
+
+	for k in pairs(self.field) do
+		table.insert(keys, k)
+	end
+
+	table.sort(keys)
+
+	for y = 1, 10 do
+		for _, x in ipairs(keys) do
+			io.write((self.field[x][y] and '■' or '□')..' ')
+		end
+		print()
+	end
+end
+
+-- Установка клетки корабля
+function field:set(x, y)
+	self.field[x][y] = true
+end
+
+-- Запрос значения клетки
+function field:get(x, y)
+	return self.field[x][y]
+end
+
 -- Если нас подключили не из Си, выходим
 if msleep == nil then
 	os.exit()
 end
 
-morse:words("АБ")
+-- morse:words("АБ")
+
+field:set('Б', 2)
+field:debug()
