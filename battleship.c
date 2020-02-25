@@ -5,6 +5,8 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include "battleship.h"
+
 IOHIDDeviceInterface **hdi = NULL;
 IOHIDElementCookie caps_cookie = 0;
 
@@ -116,7 +118,11 @@ void run_lua()
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
 
+#ifdef PROGRAM
+	int status = luaL_loadstring(L, PROGRAM);
+#else
 	int status = luaL_loadfile(L, "battleship.lua");
+#endif
 	if (status) {
 		fprintf(stderr,"Couldn't load file.\n");
 	} else {
