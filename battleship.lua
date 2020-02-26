@@ -8,10 +8,6 @@ end
 local seed = string.byte(io.open("/dev/random", "rb"):read(1))
 math.randomseed(os.time() + seed)
 
-function sign(x)
-	return x > 0 and 1 or x < 0 and -1 or 0
-end
-
 -- Работа с кодами Морзе
 morse = {
 	-- Длительность точки (от неё отталкиваются остальные задержки)
@@ -195,53 +191,36 @@ end
 
 -- Бросаем фигуру на поле
 function field:drop_ship(l)
-	local is_vert, x, y = math.random() > .5
-
-	repeat
-		x = math.random(10 - (is_vert and 0 or l))
-		y = math.random(10 - (is_vert and l or 0))
-	until field:check_ship(x, y, l, is_vert)
-
-	--[[ Идея простая: кидаем корабль на поле и
-	потихоньку начинаем его смещать в произвольную строну,
-	пока не наткнёмся на препятствие ]]
-	local nx, ny
-
-	if is_vert then
-		ny = math.random(10 - l)
-		nx = ({1, 10})[math.random(2)]
-	else
-		ny = ({1, 10})[math.random(2)]
-		nx = math.random(10 - l)
-	end
-
-	while nx ~= x or ny ~= y do
-		local dx = sign(nx - x)
-		local dy = sign(ny - y)
-
-		if not field:check_ship(x + dx, y + dy, l, is_vert) then
-			break
+	local min, max = 1, 10
+	while min < max do
+		for x = min, max do
+			field:set(x, min)
+			field:set(x, max)
 		end
 
-		x, y = x + dx, y + dy
-	end
+		for y = min, max do
+			field:set(min, y)
+			field:set(max, y)
+		end
 
-	return x, y, is_vert
+		min = min + 1
+		max = max - 1
+	end
 end
 
 -- Заполнение поля
 function field:fill()
-	local x, y, is_vert = field:drop_ship(4)
+	-- local x, y, is_vert = field:drop_ship(4)
 
-	field:set_ship(x, y, 4, is_vert)
+	-- field:set_ship(x, y, 4, is_vert)
 
-	local x, y, is_vert = field:drop_ship(3)
+	-- local x, y, is_vert = field:drop_ship(3)
 
-	field:set_ship(x, y, 4, is_vert)
+	-- field:set_ship(x, y, 4, is_vert)
 
-	local x, y, is_vert = field:drop_ship(3)
+	-- local x, y, is_vert = field:drop_ship(3)
 
-	field:set_ship(x, y, 4, is_vert)
+	-- field:set_ship(x, y, 4, is_vert)
 end
 
 -- Проверка возможности установки корабля в позицию
@@ -266,7 +245,7 @@ function field:set_ship(x, y, l, is_vert)
 	-- Рисуем заборчик около корабля (чтобы никто к нам не подошёл вплотную)
 	for xd, yd in field:ship_iter(x, y, l, is_vert) do
 		for nx, ny in field:flap_around(xd, yd) do
-			field:set(nx, ny, nil)
+			field:set(nx, ny)
 		end
 	end
 
@@ -295,7 +274,6 @@ function field:get(x, y)
 
 	return self.field[x][y]
 end
-
 
 -- morse:words("АБ")
 
