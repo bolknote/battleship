@@ -142,19 +142,17 @@ end
 
 -- Вывод поля боя (для отладки)
 function field:debug()
-	print('    А Б В Г Д Е Ж З И К')
+	print('     А  Б  В  Г  Д  Е  Ж  З  И  К')
 
 	for y = 1, 10 do
 		io.write(string.format("%02s", y)..': ')
 
 		for x in ipairs(self.field) do
 			local v = self.field[x][y]
-			if v == nil then
-				v = '☒'
-			elseif v == 0 then
-				v = '☐'
+			if v == nil or v == 0 then
+				v = '🌊'
 			else
-				v = '▇'
+				v = '🚢'
 			end
 			io.write(v..' ')
 		end
