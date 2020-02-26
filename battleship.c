@@ -1,5 +1,6 @@
 #include <IOKit/IOCFPlugIn.h>
 #include <IOKit/hid/IOHIDLib.h>
+#include <ApplicationServices/ApplicationServices.h>
 
 #include "lua.h"
 #include "lauxlib.h"
@@ -139,10 +140,16 @@ void run_lua()
 }
 
 int main()
-{	
+{
+	if (!AXIsProcessTrusted()) {
+		fprintf(stderr, "Please allow Accessibility.\n");
+		exit(1);
+	}
+
 	find_led();
 	if (caps_cookie == 0) {
 		fprintf(stderr, "Can't obtain caps cookie.\n");
+		exit(1);
 	}
 
 	(*hdi)->open(hdi, 0);
