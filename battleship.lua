@@ -124,16 +124,16 @@ function field.new()
 		num = 1,
 
 		field = {
-			["А"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-			["Б"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-			["В"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-			["Г"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-			["Д"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-			["Е"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-			["Ж"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-			["З"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-			["И"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-			["К"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
 		},
 	}
 
@@ -142,20 +142,12 @@ end
 
 -- Вывод поля боя (для отладки)
 function field:debug()
-	local keys = {}
-
-	for k in pairs(self.field) do
-		table.insert(keys, k)
-	end
-
-	table.sort(keys)
-
-	print('    '..table.concat(keys, ' '))
+	print('    А Б В Г Д Е Ж З И К')
 
 	for y = 1, 10 do
 		io.write(string.format("%02s", y)..': ')
 
-		for _, x in ipairs(keys) do
+		for x in ipairs(self.field) do
 			local v = self.field[x][y]
 			if v == 10 then
 				v = "⒑"
@@ -168,12 +160,6 @@ function field:debug()
 		end
 		print()
 	end
-end
-
--- Перевод цифры в букву, 1 → А, 2 → Б,…
-function field:_d2l(d)
-	local l = utf8.char(1039 + d)
-	return l == 'Й' and 'К' or l
 end
 
 -- Итератор для вертикального и горизонтальных кораблей
@@ -314,19 +300,11 @@ end
 
 -- Установка клетки корабля
 function field:set(x, y, v)
-	if type(x) == "number" then
-		x = field:_d2l(x)
-	end
-
 	self.field[x][y] = v
 end
 
 -- Запрос значения клетки
 function field:get(x, y)
-	if type(x) == "number" then
-		x = self:_d2l(x)
-	end
-
 	return self.field[x][y]
 end
 
