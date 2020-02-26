@@ -8,6 +8,13 @@ end
 local seed = string.byte(io.open("/dev/random", "rb"):read(1))
 math.randomseed(os.time() + seed)
 
+function shuffle(t)
+	for i = #t, 2, -1 do
+		local j = math.random(i)
+		t[i], t[j] = t[j], t[i]
+	end
+end
+
 -- Работа с кодами Морзе
 morse = {
 	-- Длительность точки (от неё отталкиваются остальные задержки)
@@ -101,27 +108,36 @@ function morse:words(str)
 end
 
 -- Поле боя
-field = {
-	-- Порядковый номер выводимого корабля
-	num = 1,
+field = {}
+field.__index = field
 
-	field = {
-		["А"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		["Б"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		["В"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		["Г"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		["Д"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		["Е"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		["Ж"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		["З"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		["И"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-		["К"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-	},
-}
+setmetatable(field, {
+  __call = function (cls, ...)
+    return cls.new(...)
+  end,
+})
 
 -- Конструктор
 function field.new()
-	return setmetatable({}, field)
+	local obj = {
+		-- Порядковый номер выводимого корабля
+		num = 1,
+
+		field = {
+			["А"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			["Б"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			["В"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			["Г"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			["Д"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			["Е"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			["Ж"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			["З"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			["И"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+			["К"] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+		},
+	}
+
+	return setmetatable(obj, field)
 end
 
 -- Вывод поля боя (для отладки)
@@ -141,7 +157,14 @@ function field:debug()
 
 		for _, x in ipairs(keys) do
 			local v = self.field[x][y]
-			io.write((v == nil and '_' or v)..' ')
+			if v == 10 then
+				v = "⒑"
+			elseif v == nil then
+				v = '☒'
+			elseif v == 0 then
+				v = '☐'
+			end
+			io.write(v..' ')
 		end
 		print()
 	end
@@ -189,51 +212,83 @@ function field:flap_around(x, y)
 	end
 end
 
--- Бросаем фигуру на поле
-function field:drop_ship(l)
+--[[ Итератор для генерации спиральных координат,
+начиная с краёв к центру ]]
+function field:spiral_iter(is_vert)
 	local min, max = 1, 10
-	while min < max do
-		for x = min, max do
-			field:set(x, min)
-			field:set(x, max)
-		end
+	local insert = table.insert
 
-		for y = min, max do
-			field:set(min, y)
-			field:set(max, y)
-		end
+	return function()
+		coords = {}
 
-		min = min + 1
-		max = max - 1
+		while min < max do
+			if is_vert then
+				for y = min, max do
+					insert(coords, {min, y})
+					insert(coords, {max, y})
+				end
+			else
+				for x = min, max do
+					insert(coords, {x, min})
+					insert(coords, {x, max})
+				end
+			end
+
+			min = min + 1
+			max = max - 1
+
+			shuffle(coords)
+			return coords
+		end
 	end
 end
 
--- Заполнение поля
+-- Пытаемся разместить корабль на поле
+function field:drop_ship(l)
+	local is_vert = math.random() > .5
+
+	for spiral in self:spiral_iter(is_vert) do
+		for _, xy in ipairs(spiral) do
+			if self:check_ship(xy[1], xy[2], l, is_vert) then
+				return xy[1], xy[2], is_vert
+			end
+		end
+	end
+end
+
+-- Заполнение поля кораблями
 function field:fill()
-	-- local x, y, is_vert = field:drop_ship(4)
+	local long_ships = {4, 3, 2}
 
-	-- field:set_ship(x, y, 4, is_vert)
+	--[[ Длинные корабли ставим по спирали (чтобы они были
+	ближе к краям, такая стратегия ]]
+	for q, l in ipairs(long_ships) do
+		for _ = 1, q do
+			local x, y, is_vert = self:drop_ship(l)
+			self:set_ship(x, y, l, is_vert)
+		end
+	end
 
-	-- local x, y, is_vert = field:drop_ship(3)
-
-	-- field:set_ship(x, y, 4, is_vert)
-
-	-- local x, y, is_vert = field:drop_ship(3)
-
-	-- field:set_ship(x, y, 4, is_vert)
+	-- Одиночные фигуры бросаем как придётся
+	for _ = 1, 4 do
+		local x, y
+		repeat
+			x, y = math.random(10), math.random(10)
+		until self:check_ship(x, y, 1, true)
+		
+		self:set_ship(x, y, 1, true)
+	end
 end
 
 -- Проверка возможности установки корабля в позицию
 function field:check_ship(x, y, l, is_vert)
-	for xd, yd in field:ship_iter(x, y, l, is_vert) do
+	for xd, yd in self:ship_iter(x, y, l, is_vert) do
 		if xd > 10 or xd < 1 or yd > 10 or yd < 1 then
 			return false
 		end
 
-		for nx, ny in field:flap_around(xd, yd) do
-			if field:get(nx, ny) ~= 0 then
-				return false
-			end
+		if self:get(xd, yd) ~= 0 then
+			return false
 		end
 	end
 
@@ -243,15 +298,15 @@ end
 -- Установка корабля
 function field:set_ship(x, y, l, is_vert)
 	-- Рисуем заборчик около корабля (чтобы никто к нам не подошёл вплотную)
-	for xd, yd in field:ship_iter(x, y, l, is_vert) do
-		for nx, ny in field:flap_around(xd, yd) do
-			field:set(nx, ny)
+	for xd, yd in self:ship_iter(x, y, l, is_vert) do
+		for nx, ny in self:flap_around(xd, yd) do
+			self:set(nx, ny)
 		end
 	end
 
 	-- Рисуем сам корабль
-	for xd, yd in field:ship_iter(x, y, l, is_vert) do
-		field:set(xd, yd, self.num)
+	for xd, yd in self:ship_iter(x, y, l, is_vert) do
+		self:set(xd, yd, self.num)
 	end
 
 	self.num = self.num + 1
@@ -269,13 +324,13 @@ end
 -- Запрос значения клетки
 function field:get(x, y)
 	if type(x) == "number" then
-		x = field:_d2l(x)
+		x = self:_d2l(x)
 	end
 
 	return self.field[x][y]
 end
 
--- morse:words("АБ")
+myf = field()
+myf:fill()
+myf:debug()
 
-field:fill()
-field:debug()
