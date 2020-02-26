@@ -149,12 +149,12 @@ function field:debug()
 
 		for x in ipairs(self.field) do
 			local v = self.field[x][y]
-			if v == 10 then
-				v = "⒑"
-			elseif v == nil then
+			if v == nil then
 				v = '☒'
 			elseif v == 0 then
 				v = '☐'
+			else
+				v = '▇'
 			end
 			io.write(v..' ')
 		end
@@ -312,3 +312,6 @@ myf = field()
 myf:fill()
 myf:debug()
 
+emf = field()
+
+-- morse:words('ХОДИ')
