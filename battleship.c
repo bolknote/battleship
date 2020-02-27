@@ -97,14 +97,18 @@ void find_led()
     }
 }
 
-
-// Включает и выключает светодиод
-static int led_on(lua_State *L)
+// Внутренняя функция для управления светодиодом
+void internal_led_on(bool on)
 {
 	static IOHIDEventStruct theEvent;
-	theEvent.value = lua_toboolean(L, -1);
+	theEvent.value = on;
 	(*hdi)->setElementValue(hdi, caps_cookie, &theEvent, 0, 0, 0, 0);
+}
 
+// Включает и выключает светодиод из Lua
+static int led_on(lua_State *L)
+{
+	internal_led_on(lua_toboolean(L, -1));
 	return 0;
 }
 
@@ -135,12 +139,18 @@ CGEventRef CGEventCallback(
 
     // LShift, RShift
     if (keyCode == 56 || keyCode == 60) {
+		uint64_t current = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
+
         if (pressed) {
-            uint64_t current = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
 			((struct duration*) duration)->before = start == 0 ? 0 : current - start;
             start = current;
+
+			internal_led_on(true);
         } else {
-            ((struct duration*) duration)->key = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW) - start;
+            ((struct duration*) duration)->key = current - start;
+            start = current;
+
+			internal_led_on(false);
             // Выходим из цикла ожидания нажатий
             CFRunLoopStop(CFRunLoopGetCurrent());
         }
