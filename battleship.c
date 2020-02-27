@@ -187,14 +187,12 @@ static int shift_duration(lua_State *L) {
 	}
 
     if (CFRunLoopRunInMode(kCFRunLoopDefaultMode, timeout / 1000, false) == kCFRunLoopRunTimedOut) {
-	    lua_pushnil(L);
-	    lua_pushnil(L);
+    	return 0;
     } else {
 	    lua_pushnumber(L, duration.before / 1000000);
 	    lua_pushnumber(L, duration.key / 1000000);
+	    return 2;
 	}
-
-    return 2;
 }
 
 // Запускаем Lua

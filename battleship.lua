@@ -316,52 +316,61 @@ function field:get(x, y)
 	return self.field[x][y]
 end
 
+-- Декодируем букву
+function morse:detect(buffer)
+	local ch = morse:find(buffer)
+
+	--[[ Если букву не удалось распознать, попробуем разбить
+	последовательность на две и найти там знаки]]
+	if ch == nil then
+		for i = 2, #buffer-1 do
+			local b1, b2 = buffer:sub(1, i), buffer:sub(i+1)
+			local ch1, ch2 = morse:find(b1), morse:find(b2)
+
+			if ch1 ~= nil and ch2 ~= nil then
+				return ch1..ch2
+			end
+		end
+
+		return '?'
+	end
+
+	return ch
+end
+
+-- Ввод слова в коде Морзе с клавиатуры
+function morse:input()
+	local buffer, str, started = "", "", false
+
+	while true do
+		-- Пропускаем таймауты, если пользователь ещё ничего не нажимал
+		repeat
+			before, dkey = shift_duration(morse.delay * 10)
+		until started or before ~= nil
+
+		started = true
+
+		if before == nil or before >= morse.delay * 7 then
+			str = str .. morse:detect(buffer)
+			break
+		else
+			if before >= morse.delay * 3 then
+				str = str .. morse:detect(buffer)
+				buffer = ""
+			end
+		end
+
+		local dd = dkey > morse.delay * 3 and '_' or '.'
+		buffer = buffer .. dd
+	end
+
+	return str
+end
+
 -- myf = field()
 -- myf:fill()
 -- myf:debug()
 
 -- emf = field()
 
-buffer = ""
-started = false
-
-while true do
-	repeat
-		before, dkey = shift_duration(morse.delay * 10)
-	until started or before ~= nil
-
-	started = true
-
-	if before == nil then
-		ch = morse:find(buffer)
-		if ch == nil then
-			print('Буква ?')
-		else
-			print('Буква '..ch)
-		end
-
-		print('Слово (таймаут)')
-		break
-	end
-
-	if before >= morse.delay * 3 then
-		ch = morse:find(buffer)
-		if ch == nil then
-			print('Буква ?')
-		else
-			print('Буква '..ch)
-		end
-		buffer = ""
-
-		if before >= morse.delay * 7 then
-			print('Слово')
-			break
-		end
-	end
-
-	dd = dkey > morse.delay * 3 and '_' or '.'
-
-	buffer = buffer .. dd
-
-	print(dd, before, dkey)
-end
+print(morse:input())
