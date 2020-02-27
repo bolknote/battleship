@@ -8,6 +8,7 @@ end
 local seed = string.byte(io.open("/dev/random", "rb"):read(1))
 math.randomseed(os.time() + seed)
 
+-- Функция для перемешивания массива (таблицы)
 function shuffle(t)
 	for i = #t, 2, -1 do
 		local j = math.random(i)
