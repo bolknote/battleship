@@ -3,6 +3,8 @@ if msleep == nil then
 	os.exit()
 end
 
+DEBUG = true
+
 --[[ Добавил энтропии, иначе при частых запусках значения,
 получаемые через генератор, сильно повторяются ]]
 local seed = string.byte(io.open("/dev/random", "rb"):read(1))
@@ -321,7 +323,7 @@ function morse:detect(buffer)
 	local ch = morse:find(buffer)
 
 	--[[ Если букву не удалось распознать, попробуем разбить
-	последовательность на две и найти там знаки]]
+	последовательность на две части и найти две буквы]]
 	if ch == nil then
 		for i = 2, #buffer-1 do
 			local b1, b2 = buffer:sub(1, i), buffer:sub(i+1)
@@ -357,11 +359,25 @@ function morse:input()
 			if before >= morse.delay * 3 then
 				str = str .. morse:detect(buffer)
 				buffer = ""
+
+				if DEBUG then
+					io.write(' ')
+					io.flush()
+				end
 			end
 		end
 
 		local dd = dkey > morse.delay * 3 and '_' or '.'
 		buffer = buffer .. dd
+
+		if DEBUG then
+			io.write(dd)
+			io.flush()
+		end
+	end
+
+	if DEBUG then
+		print()
 	end
 
 	return str
