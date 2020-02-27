@@ -140,18 +140,19 @@ CGEventRef CGEventCallback(
     // LShift, RShift
     if (keyCode == 56 || keyCode == 60) {
 		uint64_t current = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
+		uint64_t diff = start == 0 ? 0 : current - start;
 
         if (pressed) {
-			((struct duration*) duration)->before = start == 0 ? 0 : current - start;
-            start = current;
-
-			internal_led_on(true);
+			((struct duration*) duration)->before = diff;
         } else {
-            ((struct duration*) duration)->key = current - start;
-            start = current;
+            ((struct duration*) duration)->key = diff;
+        }
 
-			internal_led_on(false);
-            // Выходим из цикла ожидания нажатий
+        internal_led_on(pressed);
+        start = current;
+
+        if (!pressed) {
+            // Если клавишу отпустили, выходим из цикла ожидания нажатий
             CFRunLoopStop(CFRunLoopGetCurrent());
         }
 
