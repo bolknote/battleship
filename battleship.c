@@ -1,6 +1,7 @@
 #include <IOKit/IOCFPlugIn.h>
 #include <IOKit/hid/IOHIDLib.h>
 #include <ApplicationServices/ApplicationServices.h>
+#include <time.h>
 
 #include "lua.h"
 #include "lauxlib.h"
