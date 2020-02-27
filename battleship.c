@@ -30,7 +30,7 @@ long get_long_value(CFDictionaryRef element, CFStringRef key)
 
 _Noreturn void quit()
 {
-	fprintf(stderr,  "Failed to initialize the keyboard.\n");
+	fprintf(stderr,  "ERROR: Failed to initialize the keyboard.\n");
 	exit(1);
 }
 
@@ -192,7 +192,7 @@ void run_lua()
 	int status = luaL_loadfile(L, "battleship.lua");
 #endif
 	if (status) {
-		fprintf(stderr,"Couldn't load file.\n");
+		fprintf(stderr, "ERROR: Couldn't load file.\n");
 	} else {
 		// Пробрасываем в интерпретатор Lua следующие ф-и:
 
@@ -206,7 +206,7 @@ void run_lua()
 		int result = lua_pcall(L, 0, 0, 0);
 
 		if (result) {
-			fprintf(stderr,  "Failed to run script: %s\n", lua_tostring(L, -1));
+			fprintf(stderr,  "ERROR: Failed to run script: %s\n", lua_tostring(L, -1));
 		}
 
 		lua_close(L);
@@ -216,13 +216,13 @@ void run_lua()
 int main()
 {
 	if (!AXIsProcessTrusted()) {
-		fprintf(stderr, "Please allow Accessibility.\n");
+		fprintf(stderr, "ERROR: Please allow Accessibility.\n");
 		exit(1);
 	}
 
 	find_led();
 	if (caps_cookie == 0) {
-		fprintf(stderr, "Can't obtain caps cookie.\n");
+		fprintf(stderr, "ERROR: Can't obtain caps cookie.\n");
 		exit(1);
 	}
 
