@@ -175,8 +175,8 @@ static int shift_duration(lua_State *L) {
 
     CFRunLoopRun();
 
-    lua_pushnumber(L, duration.before);
-    lua_pushnumber(L, duration.key);
+    lua_pushnumber(L, duration.before / 1000000);
+    lua_pushnumber(L, duration.key / 1000000);
 
     return 2;
 }
