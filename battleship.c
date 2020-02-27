@@ -113,6 +113,63 @@ static int msleep(lua_State *L)
 	return 0;
 }
 
+// Функция обратного вызова для опроса клавиатуры
+CGEventRef CGEventCallback(
+      CGEventTapProxy proxy,
+      CGEventType type,
+      CGEventRef event,
+      void *duration) {
+
+    CGKeyCode keyCode = (CGKeyCode) CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
+
+    static bool pressed = true;
+    static uint64_t start;
+
+    // LShift, RShift
+    if (keyCode == 56 || keyCode == 60) {
+        if (pressed) {
+            start = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
+        } else {
+            *(uint64_t*) duration = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW) - start;
+            // Выходим из цикла ожидания нажатий
+            CFRunLoopStop(CFRunLoopGetCurrent());
+        }
+
+        pressed = !pressed;
+    }
+
+    return event;
+}
+
+// Замер сколько пользователь держит клавишу Шифт
+static int shift_duration(lua_State *L) {
+	static uint64_t duration;
+	static CFMachPortRef eventTap = NULL;
+
+	if (!eventTap) {
+	    CGEventMask eventMask = CGEventMaskBit(kCGEventFlagsChanged);
+
+	    eventTap = CGEventTapCreate(
+	        kCGSessionEventTap, kCGHeadInsertEventTap, 0, eventMask, CGEventCallback, &duration
+	    );
+
+	    if (!eventTap) {
+	        fprintf(stderr, "ERROR: Unable to create event tap.\n");
+	        exit(1);
+	    }
+
+	    CFRunLoopSourceRef runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0);
+	    CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopCommonModes);
+	    CGEventTapEnable(eventTap, true);
+	}
+
+    CFRunLoopRun();
+
+    lua_pushnumber(L, duration);
+
+    return 1;
+}
+
 // Запускаем Lua
 void run_lua()
 {
@@ -129,6 +186,7 @@ void run_lua()
 	} else {
 		lua_register(L, "led_on", led_on);
 		lua_register(L, "msleep", msleep);
+		lua_register(L, "shift_duration", shift_duration);
 		int result = lua_pcall(L, 0, 0, 0);
 
 		if (result) {
