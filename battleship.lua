@@ -19,7 +19,7 @@ end
 -- Работа с кодами Морзе
 morse = {
 	-- Длительность точки (от неё отталкиваются остальные задержки)
-	delay = 200,
+	delay = 100,
 
 	table = {
 		["А"]="._",
@@ -28,7 +28,6 @@ morse = {
 		["Г"]="__.",
 		["Д"]="_..",
 		["Е"]=".",
-		["Ё"]=".",
 		["Ж"]="..._",
 		["З"]="__..",
 		["И"]="..",
@@ -71,6 +70,16 @@ morse = {
 		["0"]="_____",
 	}
 }
+
+function morse:find(s)
+	for ch, seq in pairs(self.table) do
+		if s == seq then
+			return ch
+		end
+	end
+
+	return nil
+end
 
 -- Вывод одного символа
 function morse:char(ch)
@@ -307,13 +316,52 @@ function field:get(x, y)
 	return self.field[x][y]
 end
 
-myf = field()
-myf:fill()
-myf:debug()
+-- myf = field()
+-- myf:fill()
+-- myf:debug()
 
-emf = field()
+-- emf = field()
 
--- morse:words('ХОДИ')
+buffer = ""
+started = false
+
 while true do
-	print(shift_duration())
+	repeat
+		before, dkey = shift_duration(morse.delay * 10)
+	until started or before ~= nil
+
+	started = true
+
+	if before == nil then
+		ch = morse:find(buffer)
+		if ch == nil then
+			print('Буква ?')
+		else
+			print('Буква '..ch)
+		end
+
+		print('Слово (таймаут)')
+		break
+	end
+
+	if before >= morse.delay * 3 then
+		ch = morse:find(buffer)
+		if ch == nil then
+			print('Буква ?')
+		else
+			print('Буква '..ch)
+		end
+		buffer = ""
+
+		if before >= morse.delay * 7 then
+			print('Слово')
+			break
+		end
+	end
+
+	dd = dkey > morse.delay * 3 and '_' or '.'
+
+	buffer = buffer .. dd
+
+	print(dd, before, dkey)
 end

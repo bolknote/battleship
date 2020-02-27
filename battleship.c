@@ -167,6 +167,8 @@ static int shift_duration(lua_State *L) {
 	static struct duration duration = {0, 0};
 	static CFMachPortRef eventTap = NULL;
 
+	double timeout = lua_tointeger(L, -1);
+
 	if (!eventTap) {
 	    CGEventMask eventMask = CGEventMaskBit(kCGEventFlagsChanged);
 
@@ -184,10 +186,13 @@ static int shift_duration(lua_State *L) {
 	    CGEventTapEnable(eventTap, true);
 	}
 
-    CFRunLoopRun();
-
-    lua_pushnumber(L, duration.before / 1000000);
-    lua_pushnumber(L, duration.key / 1000000);
+    if (CFRunLoopRunInMode(kCFRunLoopDefaultMode, timeout / 1000, false) == kCFRunLoopRunTimedOut) {
+	    lua_pushnil(L);
+	    lua_pushnil(L);
+    } else {
+	    lua_pushnumber(L, duration.before / 1000000);
+	    lua_pushnumber(L, duration.key / 1000000);
+	}
 
     return 2;
 }
