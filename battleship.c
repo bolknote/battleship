@@ -123,7 +123,7 @@ CGEventRef CGEventCallback(
     CGKeyCode keyCode = (CGKeyCode) CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
 
     static bool pressed = true;
-    static uint64_t start;
+    static uint64_t start = 0;
 
     // LShift, RShift
     if (keyCode == 56 || keyCode == 60) {
@@ -143,7 +143,7 @@ CGEventRef CGEventCallback(
 
 // Замер сколько пользователь держит клавишу Шифт
 static int shift_duration(lua_State *L) {
-	static uint64_t duration;
+	static uint64_t duration = 0;
 	static CFMachPortRef eventTap = NULL;
 
 	if (!eventTap) {
