@@ -2,6 +2,7 @@
 #include <IOKit/hid/IOHIDLib.h>
 #include <ApplicationServices/ApplicationServices.h>
 #include <time.h>
+#include <stdbool.h>
 
 #include "lua.h"
 #include "lauxlib.h"
