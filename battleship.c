@@ -113,6 +113,12 @@ static int msleep(lua_State *L)
 	return 0;
 }
 
+// Структура для хранения измеренных задержек при нажатии на клавишу —
+// задержка до нажатия и длительность нажатия
+struct duration {
+	uint64_t before, key;
+};
+
 // Функция обратного вызова для опроса клавиатуры
 CGEventRef CGEventCallback(
       CGEventTapProxy proxy,
@@ -128,9 +134,11 @@ CGEventRef CGEventCallback(
     // LShift, RShift
     if (keyCode == 56 || keyCode == 60) {
         if (pressed) {
-            start = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
+            uint64_t current = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
+			((struct duration*) duration)->before = start == 0 ? 0 : current - start;
+            start = current;
         } else {
-            *(uint64_t*) duration = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW) - start;
+            ((struct duration*) duration)->key = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW) - start;
             // Выходим из цикла ожидания нажатий
             CFRunLoopStop(CFRunLoopGetCurrent());
         }
@@ -143,7 +151,7 @@ CGEventRef CGEventCallback(
 
 // Замер сколько пользователь держит клавишу Шифт
 static int shift_duration(lua_State *L) {
-	static uint64_t duration = 0;
+	static struct duration duration = {0, 0};
 	static CFMachPortRef eventTap = NULL;
 
 	if (!eventTap) {
@@ -165,9 +173,10 @@ static int shift_duration(lua_State *L) {
 
     CFRunLoopRun();
 
-    lua_pushnumber(L, duration);
+    lua_pushnumber(L, duration.before);
+    lua_pushnumber(L, duration.key);
 
-    return 1;
+    return 2;
 }
 
 // Запускаем Lua
@@ -184,9 +193,15 @@ void run_lua()
 	if (status) {
 		fprintf(stderr,"Couldn't load file.\n");
 	} else {
+		// Пробрасываем в интерпретатор Lua следующие ф-и:
+
+		// Включение и выключение светодиода
 		lua_register(L, "led_on", led_on);
+		// Функция sleep (у Lua нет своей)
 		lua_register(L, "msleep", msleep);
+		// Функция опроса клавиатуры — замеряем длительность шифта
 		lua_register(L, "shift_duration", shift_duration);
+
 		int result = lua_pcall(L, 0, 0, 0);
 
 		if (result) {

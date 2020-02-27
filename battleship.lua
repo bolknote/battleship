@@ -314,3 +314,4 @@ emf = field()
 
 -- morse:words('ХОДИ')
 print(shift_duration())
+print(shift_duration())
