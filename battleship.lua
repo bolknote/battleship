@@ -418,8 +418,9 @@ function input_coords()
 		until utf8.len(coords) > 1
 
 		if utf8.len(coords) == 2 then
-			-- Переводим первый символ в число по порядку
-			-- 1040 — код символа «А»
+			--[[ Переводим первый символ в число по порядку (codepoint возвращает код
+			только первого символа), 1040 — код символа «А»,
+			«А» → 1, «Б» → 2 и так далее ]]
 			local x = utf8.codepoint(coords) - 1040 + 1
 			 -- Поскольку «Й» в Морском бое пропускается, надо сдвинуть
 			if x == 11 then
@@ -427,6 +428,7 @@ function input_coords()
 			end
 
 			if x >= 1 and x <= 10 then
+				-- Получаем второй символ (Луа очень плохо работает с UTF-8)
 				local y = tonumber(coords:sub(utf8.offset(coords, 2), #coords))
 
 				if y ~= nil then
