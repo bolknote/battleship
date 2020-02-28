@@ -445,11 +445,11 @@ function input_coords()
 	end
 end
 
-myf = field()
-myf:fill()
+myfield = field()
+myfield:fill()
 
 while true do
-	myf:debug()
+	myfield:debug()
 	x, y = input_coords()
-	morse:words(myf:fire(x, y))
+	morse:words(myfield:fire(x, y))
 end
