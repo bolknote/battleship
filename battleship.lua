@@ -432,9 +432,7 @@ function input_coords()
 				local y = tonumber(coords:sub(utf8.offset(coords, 2), #coords))
 
 				if y ~= nil then
-					if DEBUG then
-						print('Введены координаты: '..coords, x, y)
-					end
+					if DEBUG then print('Введены координаты: '..coords, x, y) end
 					return x, y
 				end
 			end
