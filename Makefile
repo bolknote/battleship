@@ -25,4 +25,4 @@ debug :
 
 
 clean :
-	-rm battleship battleship.h
+	-rm -f battleship battleship.h
