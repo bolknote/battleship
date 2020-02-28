@@ -6,7 +6,7 @@ CFLAGS=-Wall -framework CoreFoundation -framework IOKit \
 SYS := $(shell $(CC) -dumpmachine)
 
 ifeq (, $(findstring darwin, $(SYS)))
-$(error This program is for the Darwin platform only)
+$(error This program for the Darwin platform only)
 endif
 
 all :
