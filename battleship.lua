@@ -327,13 +327,12 @@ function field:fire(x, y)
 	-- У нас может быть: промах, ранил, убил
 
 	local v = self:get(x, y)
+	self:set(x, y, 'f')
 
 	-- В клетке ничего — мимо
 	if v == nil or v == 0 or v == 'f' then
 		return 'М' -- Мимо
 	end
-
-	self:set(x, y, 'f')
 
 	for ty = 1, 10 do
 		for tx = 1, 10 do
@@ -440,7 +439,6 @@ function input_coords()
 		end
 
 		print('Введены координаты: '..coords)
-
 		morse:words("?")
 	end
 end
