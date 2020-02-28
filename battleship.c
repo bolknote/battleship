@@ -188,14 +188,15 @@ static int shift_duration(lua_State *L) {
     CGEventTapEnable(eventTap, true);
 
     if (CFRunLoopRunInMode(kCFRunLoopDefaultMode, timeout / 1000, false) == kCFRunLoopRunTimedOut) {
-		internal_led_on(false);
-    	return 0;
+		lua_pushnil(L);
+		lua_pushnil(L);
     } else {
 	    lua_pushnumber(L, duration.before / 1000000);
 	    lua_pushnumber(L, duration.key / 1000000);
-	    internal_led_on(false);
-	    return 2;
 	}
+
+    internal_led_on(false);
+    return 2;
 }
 
 // Запускаем Lua

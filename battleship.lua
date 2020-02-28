@@ -85,7 +85,7 @@ end
 
 -- Вывод одного символа
 function morse:char(ch)
-	local table = self.table[ch]
+	local table = assert(self.table[ch])
 
 	for i = 1, #table do
 		local s = table:sub(i, i)
@@ -104,6 +104,8 @@ end
 
 -- Вывод слов
 function morse:words(str)
+	if DEBUG then print('Ответ: '..str) end
+
 	-- Признак конца предложения (чтобы не было паузы в конце)
 	local EOF = utf8.char(26)
 
@@ -159,10 +161,12 @@ function field:debug()
 	for y = 1, 10 do
 		io.write(string.format("%02s", y)..': ')
 
-		for x in ipairs(self.field) do
+		for x = 1, 10 do
 			local v = self.field[x][y]
 			if v == nil or v == 0 then
 				v = '🌊'
+			elseif v  == 'f' then
+				v = '🔥'
 			else
 				v = '🚢'
 			end
@@ -318,6 +322,30 @@ function field:get(x, y)
 	return self.field[x][y]
 end
 
+-- Выстрел по клетке
+function field:fire(x, y)
+	-- У нас может быть: промах, ранил, убил
+
+	local v = self:get(x, y)
+
+	-- В клетке ничего — мимо
+	if v == nil or v == 0 or v == 'f' then
+		return 'М' -- Мимо
+	end
+
+	self:set(x, y, 'f')
+
+	for ty = 1, 10 do
+		for tx = 1, 10 do
+			if self:get(tx, ty) == v then
+				return 'Р' -- Ранил
+			end
+		end
+	end
+
+	return 'У' -- Убил
+end
+
 -- Декодируем букву
 function morse:detect(buffer)
 	local ch = morse:find(buffer)
@@ -342,7 +370,7 @@ end
 
 -- Ввод слова в коде Морзе с клавиатуры
 function morse:input()
-	local buffer, str, started = "", "", false
+	local str, buffer, started = "", "", false
 
 	while true do
 		-- Пропускаем таймауты, если пользователь ещё ничего не нажимал
@@ -350,43 +378,78 @@ function morse:input()
 			before, dkey = shift_duration(morse.delay * 10)
 		until started or before ~= nil
 
-		started = true
-
-		if before == nil or before >= morse.delay * 7 then
-			str = str .. morse:detect(buffer)
-			break
-		else
-			if before >= morse.delay * 3 then
-				str = str .. morse:detect(buffer)
-				buffer = ""
-
-				if DEBUG then
-					io.write(' ')
-					io.flush()
-				end
+		-- По таймауту считаем передачу законченной
+		if before == nil then
+			if buffer ~= "" then
+				str  = str .. morse:detect(buffer)
 			end
+			break
 		end
 
-		local dd = dkey > morse.delay * 3 and '_' or '.'
-		buffer = buffer .. dd
-
-		if DEBUG then
-			io.write(dd)
-			io.flush()
+		--[[ Если это не первый символ и пауза больше утроенной точки,
+		то это следующий символ ]]
+		if started and before >= morse.delay * 3 then
+			str  = str .. morse:detect(buffer)
+			buffer = ""
+			if DEBUG then io.write(' '); io.flush() end
 		end
+
+		--[[ Если только что стартанули, то нас не интересует
+		before, там могло остаться значение от прошлого запуска]]
+		local key = dkey > morse.delay * 3 and '_' or '.'
+
+		if DEBUG then io.write(key); io.flush() end
+
+		buffer = buffer .. key
+		started = true
 	end
 
-	if DEBUG then
-		print()
-	end
+	if DEBUG then print('\nВведено: '..str) end
 
 	return str
 end
 
--- myf = field()
--- myf:fill()
--- myf:debug()
+-- Взаимодействие с пользователем для ввода двух координат
+function input_coords()
+	while true do
+		local coords = ""
 
--- emf = field()
+		repeat
+			coords = coords .. morse:input()
+		until utf8.len(coords) > 1
 
-print(morse:input())
+		if utf8.len(coords) == 2 then
+			-- Переводим первый символ в число по порядку
+			-- 1040 — код символа «А»
+			local x = utf8.codepoint(coords) - 1040 + 1
+			 -- Поскольку «Й» в Морском бое пропускается, надо сдвинуть
+			if x == 11 then
+				x = 10
+			end
+
+			if x >= 1 and x <= 10 then
+				local y = tonumber(coords:sub(utf8.offset(coords, 2), #coords))
+
+				if y ~= nil then
+					if DEBUG then
+						print('Введены координаты: '..coords, x, y)
+					end
+					return x, y
+				end
+			end
+		end
+
+		print('Введены координаты: '..coords)
+
+		morse:words("?")
+	end
+end
+
+myf = field()
+myf:fill()
+
+while true do
+	myf:debug()
+	x, y = input_coords()
+	morse:words(myf:fire(x, y))
+end
