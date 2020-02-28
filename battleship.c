@@ -133,12 +133,13 @@ CGEventRef CGEventCallback(
       void *duration) {
 
     CGKeyCode keyCode = (CGKeyCode) CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
-
-    static bool pressed = true;
     static uint64_t start = 0;
 
     // LShift, RShift
     if (keyCode == 56 || keyCode == 60) {
+	    CGEventFlags modifiers = CGEventGetFlags(event);
+		bool pressed = modifiers & kCGEventFlagMaskShift;
+
 		uint64_t current = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
 		uint64_t diff = start == 0 ? 0 : current - start;
 
@@ -155,8 +156,6 @@ CGEventRef CGEventCallback(
             // Если клавишу отпустили, выходим из цикла ожидания нажатий
             CFRunLoopStop(CFRunLoopGetCurrent());
         }
-
-        pressed = !pressed;
     }
 
     return event;
