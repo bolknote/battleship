@@ -183,14 +183,17 @@ static int shift_duration(lua_State *L) {
 
 	    CFRunLoopSourceRef runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0);
 	    CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopCommonModes);
-	    CGEventTapEnable(eventTap, true);
 	}
 
+    CGEventTapEnable(eventTap, true);
+
     if (CFRunLoopRunInMode(kCFRunLoopDefaultMode, timeout / 1000, false) == kCFRunLoopRunTimedOut) {
+		internal_led_on(false);
     	return 0;
     } else {
 	    lua_pushnumber(L, duration.before / 1000000);
 	    lua_pushnumber(L, duration.key / 1000000);
+	    internal_led_on(false);
 	    return 2;
 	}
 }
