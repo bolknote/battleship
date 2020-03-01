@@ -443,11 +443,59 @@ function input_coords()
 	end
 end
 
-myfield = field()
-myfield:fill()
+--[[ Строим решётку по которой будем стрелять,
+чтобы найти какую-то фигуру, надо стрелять по решётке
+такого же размера, а чтобы это не было однообразно,
+перемешаем ]]
+function field:build_grid(l)
+	local x, y = 1, l
+	local grid = {}
 
-while true do
-	myfield:debug()
-	x, y = input_coords()
-	morse:words(myfield:fire(x, y))
+	while x <= 10 and y <= 10 do
+		if self:get(x, y) == 0 then
+			-- Посмотрим не стоит ли наша точка около корабля,
+			-- рядом с кораблём нет смысла стрелятьы
+			for nx, ny in self:flap_around(x, y) do
+				local m = self:get(nx, ny)
+
+				if m ~= 0 and m ~= 'f' then
+					goto ship_nearby
+				end
+			end
+
+			table.insert(grid, {x, y})
+			::ship_nearby::
+		end
+
+		if y == 10 then
+			y = 1
+			x = x + 1
+		else
+			y = y + l
+
+			if y > 10 then
+				y = y - 10 + 1
+				x = x + 1
+			end
+		end
+	end
+
+	shuffle(grid)
+	return grid
 end
+
+myfield = field()
+-- myfield:fill()
+
+myfield:set(3, 1, 1)
+for _, v in ipairs(myfield:build_grid(4)) do
+	myfield:set(v[1], v[2], 'f')
+end
+
+myfield:debug()
+
+-- while true do
+-- 	myfield:debug()
+-- 	x, y = input_coords()
+-- 	morse:words(myfield:fire(x, y))
+-- end
