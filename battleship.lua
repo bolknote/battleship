@@ -468,14 +468,12 @@ function field:build_grid(l)
 		end
 
 		if y == 10 then
-			y = 1
-			x = x + 1
+			x, y = x + 1, 1
 		else
 			y = y + l
 
 			if y > 10 then
-				y = y - 10 + 1
-				x = x + 1
+				x, y = x + 1, y - 10 + 1
 			end
 		end
 	end
@@ -488,6 +486,7 @@ myfield = field()
 -- myfield:fill()
 
 myfield:set(3, 1, 1)
+myfield:set(5, 5, 1)
 for _, v in ipairs(myfield:build_grid(4)) do
 	myfield:set(v[1], v[2], 'f')
 end
