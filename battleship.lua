@@ -163,11 +163,17 @@ function field:debug()
 
 		for x = 1, 10 do
 			local v = self.field[x][y]
+			-- пустая клетка
 			if v == nil or v == 0 then
 				v = '🌊'
+			-- стреляли, ранили
 			elseif v  == 'f' then
 				v = '🔥'
+			-- стреляли, убили
+			elseif v == 'F' then
+				v = '💥'
 			else
+			-- часть («палуба») корабля
 				v = '🚢'
 			end
 			io.write(v..' ')
@@ -327,10 +333,16 @@ function field:fire(x, y)
 	-- У нас может быть: промах, ранил, убил
 
 	local v = self:get(x, y)
+
+	-- В клетку уже стреляли — мимо
+	if v == 'f' or v == 'F' then
+		return 'М' -- Мимо
+	end
+
 	self:set(x, y, 'f')
 
 	-- В клетке ничего — мимо
-	if v == nil or v == 0 or v == 'f' then
+	if v == nil or v == 0 then
 		return 'М' -- Мимо
 	end
 
@@ -482,13 +494,66 @@ function field:build_grid(l)
 	return grid
 end
 
+-- Ищет на поле фигуры
+function field:figures()
+	--[[ Находим все фигуры, считая расстояния между точками, которые
+	у нас уже записаны и новыми ]]
+	local figures = {}
+
+	for x = 1, 10 do
+		for y = 1, 10 do
+			local v = self:get(x, y)
+
+			if v ~= nil and v ~= 0 then
+				for _, l in ipairs(figures) do
+					for _, f in ipairs(l) do
+						-- Если точки рядом, значит они одной фигуры
+						if math.abs(x - f[1]) + math.abs(y - f[2]) == 1 then
+							table.insert(l, {x, y, v})
+							goto found
+						end
+					end
+				end
+				-- Если точка никуда не добавилась, значит это первая точка корабля
+				table.insert(figures, {{x, y, v}})
+				::found::
+			end
+		end
+	end
+
+	--[[ Нужно упорядочить фигуры — записать длины найденных фигур,
+	полные они или нет, а так же максимальную и минимальную точки ]]
+
+	for _, l in ipairs(figures) do
+		local minx, miny = table.unpack(l[1])
+		local maxx, maxy = table.unpack(l[#l])
+		local len = maxx - minx + maxy - miny + 1
+		local dir = maxx == minx and 'В' or 'Г'
+
+		print(minx, miny, maxx, maxy, len, dir)
+	end
+
+	return figures
+end
+
 myfield = field()
 -- myfield:fill()
 
 myfield:set(3, 1, 1)
+myfield:set(3, 2, 1)
+myfield:set(3, 3, 1)
+
+myfield:set(5, 1, 1)
+myfield:set(5, 2, 1)
+myfield:set(5, 3, 1)
+
+myfield:set(4, 5, 1)
 myfield:set(5, 5, 1)
+
+t = myfield:figures()
+
 for _, v in ipairs(myfield:build_grid(4)) do
-	myfield:set(v[1], v[2], 'f')
+	myfield:fire(table.unpack(v))
 end
 
 myfield:debug()
