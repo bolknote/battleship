@@ -509,13 +509,13 @@ function field:figures()
 					for _, f in ipairs(l) do
 						-- Если точки рядом, значит они одной фигуры
 						if math.abs(x - f[1]) + math.abs(y - f[2]) == 1 then
-							table.insert(l, {x, y, v})
+							table.insert(l, {x, y, value = v})
 							goto found
 						end
 					end
 				end
 				-- Если точка никуда не добавилась, значит это первая точка корабля
-				table.insert(figures, {{x, y, v}})
+				table.insert(figures, {{x, y, value = v}})
 				::found::
 			end
 		end
@@ -523,6 +523,7 @@ function field:figures()
 
 	--[[ Нужно упорядочить фигуры — записать длины найденных фигур,
 	полные они или нет, а так же максимальную и минимальную точки ]]
+	local info = {}
 
 	for _, l in ipairs(figures) do
 		local minx, miny = table.unpack(l[1])
@@ -530,10 +531,21 @@ function field:figures()
 		local len = maxx - minx + maxy - miny + 1
 		local dir = maxx == minx and 'В' or 'Г'
 
-		print(minx, miny, maxx, maxy, len, dir)
+		table.insert(info, {
+			-- минимальные координаты
+			min = {x = minx, y = miny},
+			-- максимальные координаты
+			max = {x = maxx, y = maxy},
+			-- длина корабля
+			len = len,
+			-- направление: «Вертикальный» или «Горизонтальный»
+			dir = dir,
+			-- для контроля, что корабль убит, хватит просмотра одного значения
+			died = l[1].value == 'F',
+		})
 	end
 
-	return figures
+	return info
 end
 
 myfield = field()
@@ -550,7 +562,11 @@ myfield:set(5, 3, 1)
 myfield:set(4, 5, 1)
 myfield:set(5, 5, 1)
 
+myfield:set(7, 7, 'F')
+
 t = myfield:figures()
+require('print_table')
+print_table(t)
 
 for _, v in ipairs(myfield:build_grid(4)) do
 	myfield:fire(table.unpack(v))
