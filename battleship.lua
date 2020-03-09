@@ -526,9 +526,12 @@ function field:figures()
 	local info = {}
 
 	for _, l in ipairs(figures) do
+		-- в силу особенностей обхода младшие координаты идут первыми
 		local minx, miny = table.unpack(l[1])
 		local maxx, maxy = table.unpack(l[#l])
+		-- длина коробля — разница между минимумом и максимумом
 		local len = maxx - minx + maxy - miny + 1
+		-- направление корабля, если по «иксу» координаы совпадают, значит Вертикальный
 		local dir = maxx == minx and 'В' or 'Г'
 
 		table.insert(info, {
