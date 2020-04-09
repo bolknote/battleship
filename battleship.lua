@@ -563,8 +563,102 @@ function field:figures()
 	return info
 end
 
+-- Выбирает куда стрелять дальше по противнику
+function field:next_fire()
+	-- найдём какие фигуры игрока мы уже знаем
+	local ships = self:figures()
+
+	--[[ мы ещё не знаем никаких кораблей, будем
+	стрелять по сетке, в расчёте убить четырёхпалубный ]]
+	if #ships == 0 then
+		return self:build_grid(4)[1]
+	end
+
+	local target = nil
+
+	-- найдём неубитый корабль
+	for _, ship in ipairs(ships) do
+		if not ship['died'] then
+			target = ship
+			break
+		end
+	end
+
+	-- Неубитых кораблей нет
+	if target == nil then
+		--[[ Надо найти какой самый длинный корабль остался
+		в живых, для этого посчитаем наши корабли. У нас
+		четыре типа кораблей, записано количество ]]
+		local lens = { 4, 3, 2, 1, }
+
+		for _, ship in ipairs(ships) do
+			lens[ship['len']] = lens[ship['len']] - 1
+		end
+
+		--[[ остались количество кораблей, которые мы не убили,
+		в ключах записана длина ]]
+		for l = 4, 1, -1 do
+			if lens[l] > 0 then
+				--[[ если это не однопалубный, то делаем сетку
+				для кораблей такого типа и стреляем в первую координату ]]
+				if l > 1 then
+					return self:build_grid(l)[1]
+				else
+					local coords = {}
+					--[[ для кораблей длины один надо взять все свободные
+					клетки и вернуть первую случайную координату ]]
+					for x = 1, 10 do
+						for y = 1, 10 do
+							local v = self:get(x, y)
+							if v == 0 or v == nil then
+								table.insert(coords, {x, y})
+							end
+						end
+					end
+					shuffle(coords)
+					return coords[1]
+				end
+			end
+		end
+
+		-- Убиты все корабли
+		return nil
+	else
+		-- Координата по которой надо искать края
+		local coord1 = target['dir'] == '-' and 'x' or 'y'
+		-- Вторая координата
+		local coord2 = coord1 == 'x' and 'y' or 'x'
+
+		-- координаты краёв
+		local max = target['max'][coord1] + 1
+		local min = target['min'][coord1] - 1
+
+		local coord_value = target['max'][coord2]
+
+		local coords = {}
+
+		-- Добавляем координаты, только если они укладывааются в пределы поля
+		if max <= 10 then
+			table.insert(coords, {[coord1] = max, [coord2] = coord_value})
+		end
+
+		if min >= 1 then
+			table.insert(coords, {[coord1] = min, [coord2] = coord_value})
+		end
+
+		shuffle(coords)
+
+		-- Выбираем первое значение из перемешанной таблицы
+		return {coords[1].x, coords[1].y}
+	end
+end
+
+require('print_table')
+
+
 myfield = field()
 -- myfield:fill()
+
 
 myfield:set(3, 1, 'f')
 myfield:set(3, 2, 'f')
@@ -578,6 +672,13 @@ myfield:set(4, 5, 'F')
 myfield:set(5, 5, 'F')
 
 myfield:set(7, 7, 'F')
+
+myfield:debug()
+
+f = myfield:next_fire()
+print_table(f)
+os.exit()
+
 
 t = myfield:figures()
 require('print_table')
