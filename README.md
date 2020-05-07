@@ -8,12 +8,12 @@
 «» → «Системные настройки» → «Защита и безопасность»)
 
 ### Компиляция и запуск (крайкая инструкция)
-`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"`
-`brew install gcc make lua git`
-`git clone https://github.com/bolknote/battleship.git`
-`cd battleship`
-`make`
-`./battleship`
+1) `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"`
+1) `brew install gcc make lua git`
+1) `git clone https://github.com/bolknote/battleship.git`
+1) `cd battleship`
+1) `make`
+1) `./battleship`
 
 ### Как играть
 
