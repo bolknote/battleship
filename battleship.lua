@@ -3,7 +3,12 @@ if msleep == nil then
 	os.exit()
 end
 
-DEBUG = true
+DEBUG = false
+FAKE_INPUT = false
+
+KILLED = 'F'
+FIRED = 'f'
+MISSED = 'm'
 
 --[[ Добавил энтропии, иначе при частых запусках значения,
 получаемые через генератор, сильно повторяются ]]
@@ -16,6 +21,11 @@ function shuffle(t)
 		local j = math.random(i)
 		t[i], t[j] = t[j], t[i]
 	end
+end
+
+-- вывод отладки
+function debug(str)
+	if DEBUG then print(str) end
 end
 
 -- Работа с кодами Морзе
@@ -104,7 +114,7 @@ end
 
 -- Вывод слов
 function morse:words(str)
-	if DEBUG then print('Ответ: '..str) end
+	debug('Ответ: '..str)
 
 	-- Признак конца предложения (чтобы не было паузы в конце)
 	local EOF = utf8.char(26)
@@ -167,13 +177,13 @@ function field:debug()
 			if v == nil or v == 0 then
 				v = '🌊'
 			-- стреляли, ранили
-			elseif v  == 'f' then
+			elseif v  == FIRED then
 				v = '🔥'
 			-- стреляли, убили
-			elseif v == 'F' then
+			elseif v == KILLED then
 				v = '💀'
 			-- стреляли, мимо
-			elseif v == 'm' then
+			elseif v == MISSED then
 				v = '💥'
 			else
 			-- часть («палуба») корабля
@@ -220,6 +230,16 @@ function field:flap_around(x, y)
 		end
 	end
 end
+
+--[[ убийство корабля — даётся одна из точек, все точки
+этого корабля перекрашиваются ]]
+function field:kill(x, y)
+	self:set(x, y, KILLED)
+	for x, y in self:flap_around(x, y) do
+		if self:get(x, y) == FIRED then self:kill(x, y) end
+	end
+end
+
 
 --[[ Итератор для генерации спиральных координат,
 начиная с краёв к центру ]]
@@ -339,17 +359,17 @@ function field:fire(x, y)
 	local v = self:get(x, y)
 
 	-- В клетку уже стреляли — мимо
-	if v == 'f' or v == 'F' or v == 'm' then
+	if v == FIRED or v == KILLED or v == MISSED then
 		return 'М' -- Мимо
 	end
 
 	-- В клетке ничего — мимо
 	if v == nil or v == 0 then
-		self:set(x, y, 'm')
+		self:set(x, y, MISSED)
 		return 'М' -- Мимо
 	end
 
-	self:set(x, y, 'f')
+	self:set(x, y, FIRED)
 
 	--[[ Имеет смысл только для кораблей компьютера:
 	ищется, если ли ещё часть корабля с тем же номером,
@@ -362,10 +382,8 @@ function field:fire(x, y)
 		end
 	end
 
-	--[[ Этот случай интересен только в случае стрельбы по
-	кораблям компьютера, поэтому мы не перекрашиваем убитый корабль —
-	что корабль убит интересно только компьютеру в отношение игрока ]]
 
+	self:kill(x, y)
 	return 'У' -- Убил
 end
 
@@ -427,7 +445,7 @@ function morse:input()
 		started = true
 	end
 
-	if DEBUG then print('\nВведено: '..str) end
+	debug('\nВведено: '..str)
 
 	return str
 end
@@ -456,15 +474,37 @@ function input_coords()
 				local y = tonumber(coords:sub(utf8.offset(coords, 2), #coords))
 
 				if y ~= nil then
-					if DEBUG then print('Введены координаты: '..coords, x, y) end
+					debug('Введены координаты: '..coords, x, y)
 					return x, y
 				end
 			end
 		end
 
-		print('Введены координаты: '..coords)
+		debug('Введены ошибочные координаты: '..coords)
 		morse:words("?")
 	end
+end
+
+-- Пользовельский вводе не через морзянку
+-- ввод только цифрами, 0 → 10
+function debug_input_coords()
+	local coords = io.read()
+	if utf8.len(coords) >= 2 then
+		local out = {}
+		coords:gsub(
+			".",
+			function (ch) table.insert(out, ch == "0" and 10 or tonumber(ch)) end
+		)
+
+		local x, y = table.unpack(out)
+		debug('Введены координаты: '..coords, x, y)
+
+		return x, y
+	end
+
+	debug('Введены ошибочные координаты: '..coords)
+
+	return
 end
 
 --[[ Строим решётку по которой будем стрелять,
@@ -482,7 +522,7 @@ function field:build_grid(l)
 			for nx, ny in self:flap_around(x, y) do
 				local m = self:get(nx, ny)
 
-				if m ~= 0 and m ~= 'f' then
+				if m ~= 0 and m ~= FIRED and m ~= MISSED then
 					goto ship_nearby
 				end
 			end
@@ -516,7 +556,8 @@ function field:figures()
 		for y = 1, 10 do
 			local v = self:get(x, y)
 
-			if v ~= nil and v ~= 0 then
+			-- если это не отстутствие корабля и не промах
+			if v ~= nil and v ~= 0 and v ~= MISSED then
 				for _, l in ipairs(figures) do
 					for _, f in ipairs(l) do
 						-- Если точки рядом, значит они одной фигуры
@@ -541,10 +582,26 @@ function field:figures()
 		-- в силу особенностей обхода младшие координаты идут первыми
 		local minx, miny = table.unpack(l[1])
 		local maxx, maxy = table.unpack(l[#l])
-		-- длина коробля — разница между минимумом и максимумом
+
+		-- длина корабля — разница между минимумом и максимумом
 		local len = maxx - minx + maxy - miny + 1
-		-- направление корабля, если по «иксу» координаты совпадают, значит Вертикальный
-		local dir = maxx == minx and '|' or '-'
+		-- сначала выбираем произвольное направление
+		local dir = ({'-','|'})[math.random(1, 2)]
+		
+		-- для корабля длины один надо бы посмотреть по каким координатам что-то стоит вокруг
+		if len == 1 then
+			local x, y = maxx, maxy
+
+			-- если стреляли вокруг и промахнулись, то мы знаем направление
+			if y > 1 and self:get(x, y - 1) == MISSED and y < 10 and self:get(x, y + 1) == MISSED then
+				dir = '-'
+			elseif x > 1 and self:get(x - 1, y) == MISSED and x < 10 and self:get(x + 1, y) == MISSED then
+				dir = '|'
+			end
+		else
+			-- направление корабля, если по «иксу» координаты совпадают, значит Вертикальный
+			dir = maxx == minx and '|' or '-'
+		end
 
 		table.insert(info, {
 			-- минимальные координаты
@@ -556,7 +613,7 @@ function field:figures()
 			-- направление: «Вертикальный» или «Горизонтальный»
 			dir = dir,
 			-- для контроля, что корабль убит, хватит просмотра одного значения
-			died = l[1].value == 'F',
+			died = l[1].value == KILLED,
 		})
 	end
 
@@ -606,13 +663,18 @@ function field:next_fire()
 				else
 					local coords = {}
 					--[[ для кораблей длины один надо взять все свободные
-					клетки и вернуть первую случайную координату ]]
+					клетки и вернуть первую случайную координату, вокруг которых
+					ничего нет ]]
 					for x = 1, 10 do
 						for y = 1, 10 do
-							local v = self:get(x, y)
-							if v == 0 or v == nil then
-								table.insert(coords, {x, y})
+							-- смотрим, пусто ли вокруг
+							for xe, ye in self:flap_around(x, y) do
+								local ch = self:get(xe, ye)
+								if ch ~= 0 and ch ~= nil then goto smth_nearby end
 							end
+
+							table.insert(coords, {x, y})
+							::smth_nearby::
 						end
 					end
 					shuffle(coords)
@@ -637,13 +699,17 @@ function field:next_fire()
 
 		local coords = {}
 
-		-- Добавляем координаты, только если они укладывааются в пределы поля
-		if max <= 10 then
-			table.insert(coords, {[coord1] = max, [coord2] = coord_value})
+		--[[ Добавляем координаты, только если они укладывааются в пределы поля
+		и в них уже не стреляли ]]
+		local c = {[coord1] = max, [coord2] = coord_value}
+
+		if max <= 10 and self:get(c.x, c.y) ~= MISSED then
+			table.insert(coords, c)
 		end
 
-		if min >= 1 then
-			table.insert(coords, {[coord1] = min, [coord2] = coord_value})
+		local c = {[coord1] = min, [coord2] = coord_value}
+		if min >= 1 and self:get(c.x, c.y) ~= MISSED then
+			table.insert(coords, c)
 		end
 
 		shuffle(coords)
@@ -653,45 +719,107 @@ function field:next_fire()
 	end
 end
 
-require('print_table')
+-- Проверка — есть ли куда стрелять
+function field:finished()
+	--[[ Надо обойти всё поле и посмотреть:
+	     а) есть ли куда стрелять
+	     б) не убиты ли все корабли
+	]]
 
+	local fired = 0 -- убитых ячеек
+	local empty = 100 -- свободных ячеек
 
-myfield = field()
--- myfield:fill()
+	for x = 1, 10 do
+		for y = 1, 10 do
+			local v = self:get(x, y)
+			if v ~= 0 and v ~= nil then
+				empty = empty - 1
+				if v == KILLED or v == FIRED then fired = fired + 1 end
+			end
+		end
+	end
 
+	-- всего кораблей
+	local total = 1*4 + 3*2 + 2*3 + 4*1
 
-myfield:set(3, 1, 'f')
-myfield:set(3, 2, 'f')
-myfield:set(3, 3, 'f')
+	if fired >= total then
+		return true, 'D' -- все убиты
+	end
 
-myfield:set(5, 1, 'F')
-myfield:set(5, 2, 'F')
-myfield:set(5, 3, 'F')
+	if empty == 0 then
+		return true, 'F' -- поле заполнено, ходить некуда
+	end
 
-myfield:set(4, 5, 'F')
-myfield:set(5, 5, 'F')
-
-myfield:set(7, 7, 'F')
-
-myfield:debug()
-
-f = myfield:next_fire()
-print_table(f)
-os.exit()
-
-
-t = myfield:figures()
-require('print_table')
-print_table(t)
-
-for _, v in ipairs(myfield:build_grid(4)) do
-	myfield:fire(table.unpack(v))
+	return false, '' -- ещё не всё
 end
 
-myfield:debug()
+robot = field()
+human = field()
+robot:fill()
 
--- while true do
--- 	myfield:debug()
--- 	x, y = input_coords()
--- 	morse:words(myfield:fire(x, y))
--- end
+if DEBUG then robot:debug() end
+
+while true do
+	-- смотрим какие координаты дал нам пользователь
+	repeat
+		if FAKE_INPUT then x, y = debug_input_coords() else x, y = input_coords() end
+	until x ~= nil
+
+	-- стреляем по ним и сообщаем результат
+	result = robot:fire(x, y)
+	if result == nil then
+		morse:words('НЕТ ХОДОВ')
+	end
+
+	morse:words(result)
+
+	if DEBUG then robot:debug() end
+
+	-- проверяем, не кончилась ли игра для робота
+	finished, code = robot:finished()
+
+	if finished then
+		morse:words(code == 'D' and 'ВАША ПОБЕДА' or 'НЕТ ХОДОВ')
+		break
+	end
+
+	-- если нет, то стреляем сами
+	x, y = table.unpack(human:next_fire())
+	-- для пользователя первую координату надо перевести в букву
+	ch1 = ({'А','Б','В','Г','Д','Е','Ж','З','И','К'})[x]
+	ch2 = y == 10 and "0" or tostring(y)
+	debug('Компьютер стреляет: '..ch1..ch2)
+
+	morse:words(ch1..ch2)
+
+	-- теперь ждём что ответит пользователь: У — убил, Р — ранил, М — мимо
+	while true do
+		if FAKE_INPUT then answer = io.read() else answer = morse:input() end
+		-- берём первый utf-8-символ и убираем 32 — делаем uppercase для русского
+		ch = utf8.char(utf8.codepoint(answer) - 32)
+		if ch == 'У' or ch == 'М' or ch == 'Р' then
+			break
+		else
+			debug('Неправильный ввод, ещё раз.')
+			morse:words('?')
+		end
+	end
+
+	if ch == 'У' then
+		human:kill(x, y)
+	elseif ch == 'П' or ch == 'Р' then
+		human:set(x, y, FIRED)
+	else
+		human:set(x, y, MISSED)
+	end
+
+	if DEBUG then human:debug() end
+
+	-- проверяем, не кончилась ли игра для человека
+	finished, code = human:finished()
+
+	if finished then
+		morse:words(code == 'D' and 'МОЯ ПОБЕДА' or 'НЕТ ХОДОВ')
+		break
+	end
+end
