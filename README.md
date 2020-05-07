@@ -7,7 +7,7 @@
 (для этого ваш терминал должен быть добавлен в соответствующие разделы меню
 «» → «Системные настройки» → «Защита и безопасность»)
 
-### Компиляция и запуск (крайкая инструкция)
+### Компиляция и запуск (краткая инструкция)
 1) `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"`
 1) `brew install gcc make lua git`
 1) `git clone https://github.com/bolknote/battleship.git`
