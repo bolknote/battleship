@@ -9,7 +9,7 @@
 
 ### Компиляция и запуск (краткая инструкция)
 1) `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"`
-1) `brew install gcc make lua git`
+1) `brew install gcc make lua git pkg-config`
 1) `git clone https://github.com/bolknote/battleship.git`
 1) `cd battleship`
 1) `make`
