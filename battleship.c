@@ -59,7 +59,12 @@ void find_led()
         quit();
     %>
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 120000
+    io_object_t hidDevice = IOServiceGetMatchingService(kIOMainPortDefault, matchingDictRef);
+#else
     io_object_t hidDevice = IOServiceGetMatchingService(kIOMasterPortDefault, matchingDictRef);
+#endif
+
     CFRelease(usageRef);
     CFRelease(usagePageRef);
 
