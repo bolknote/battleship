@@ -16,12 +16,12 @@ all :
 		> battleship.h \
 	)
 
-	$(CC) $(CFLAGS) -o battleship battleship.c
+	$(CC) $(CFLAGS) -std=c17 -o battleship battleship.c
 
 
 debug :
 	$(shell echo > battleship.h)
-	$(CC) $(CFLAGS) -o battleship battleship.c
+	$(CC) $(CFLAGS) -std=c17 -o battleship battleship.c
 
 
 clean :
